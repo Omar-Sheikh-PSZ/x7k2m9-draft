@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft Room — 26/27</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+:root{
+  --ink:#0b1119; --panel:#111c2b; --panel2:#162334; --line:#243549;
+  --text:#e8edf4; --dim:#78899f; --amber:#e8a33d; --mint:#5fd3a5; --coral:#e8756b; --violet:#9d8cf0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--ink);color:var(--text);font-family:'IBM Plex Mono',monospace}
+body{padding:10px 8px 30px;max-width:760px;margin:0 auto}
+h1{font-family:'Archivo',sans-serif;font-weight:800;font-size:17px;letter-spacing:.02em;text-transform:uppercase}
+h1 span{color:var(--amber)}
+.sub{color:var(--dim);font-size:10px;margin:2px 0 10px}
+
+/* view switch */
+.views{display:flex;gap:5px;margin-bottom:9px}
+.vbtn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;border:1px solid var(--line);
+  background:var(--panel);color:var(--dim);padding:9px 6px;border-radius:5px;cursor:pointer;position:relative}
+.vbtn.on{background:var(--amber);border-color:var(--amber);color:#101010}
+.vbtn .badge{position:absolute;top:-6px;right:-6px;background:var(--violet);color:#101010;font-size:9px;
+  font-weight:700;border-radius:9px;padding:1px 5px;min-width:16px}
+.vbtn.on .badge{background:#101010;color:var(--amber)}
+
+.controls{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap}
+.ctl{font-size:10.5px;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--dim);
+  padding:6px 9px;border-radius:4px;cursor:pointer}
+.ctl.on{background:var(--panel2);border-color:var(--amber);color:var(--text)}
+.hint{color:var(--dim);font-size:9px;margin:4px 2px 7px;letter-spacing:.04em;text-transform:uppercase}
+
+.row{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px;margin-bottom:5px;
+  display:flex;align-items:center;gap:8px}
+.row.taken{opacity:.3}
+.row.taken .nm{text-decoration:line-through}
+.rk{color:var(--amber);font-weight:600;font-size:11px;min-width:26px}
+.info{flex:1;min-width:0}
+.nm{font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{color:var(--dim);font-size:9.5px;margin-top:1px}
+.chip{display:inline-block;font-size:9px;padding:1px 4px;border-radius:3px;margin-left:4px;font-weight:600}
+.chip.steal{background:var(--mint);color:#0b1119}
+.chip.rich{background:var(--coral);color:#0b1119}
+.chip.adp{background:var(--panel2);color:var(--dim)}
+.vnum{text-align:right;min-width:38px}
+.vnum b{font-size:14px;font-weight:600;display:block;color:var(--amber)}
+.vnum span{font-size:8px;color:var(--dim);text-transform:uppercase}
+.acts{display:flex;gap:4px}
+.act{border:1px solid var(--line);background:var(--panel2);color:var(--text);width:30px;height:30px;
+  border-radius:5px;font-size:15px;font-weight:600;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
+.act.q{color:var(--violet)}
+.act.d{color:var(--mint)}
+.act.x{color:var(--coral);font-size:13px}
+.act:active{transform:scale(.9)}
+
+/* roster */
+.formrow{display:flex;gap:5px;margin-bottom:9px;flex-wrap:wrap;align-items:center}
+.formrow .lbl{font-size:10px;color:var(--dim);text-transform:uppercase}
+.fbadge{font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;padding:3px 10px;border-radius:5px;
+  background:var(--panel2);border:1px solid var(--line)}
+.fbadge.legal{border-color:var(--mint);color:var(--mint)}
+.fbadge.illegal{border-color:var(--coral);color:var(--coral)}
+.poscount{font-size:10px;color:var(--dim)}
+.slotgroup{margin-bottom:10px}
+.slothead{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:0 2px 4px;
+  display:flex;justify-content:space-between}
+.empty{color:var(--dim);font-size:10.5px;padding:9px;text-align:center;border:1px dashed var(--line);border-radius:6px}
+.row.qrow{cursor:grab}
+.row.dragging{opacity:.4;border-color:var(--violet)}
+.row.dragover{border-color:var(--violet);border-style:dashed}
+.grip{color:var(--dim);font-size:15px;cursor:grab;padding:0 3px;touch-action:none;user-select:none}
+.qorder{color:var(--violet);font-weight:600;font-size:11px;min-width:20px}
+.savebar{display:flex;gap:5px;align-items:center;margin-bottom:9px;flex-wrap:wrap}
+.savebar button{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;border:1px solid var(--line);
+  background:var(--panel);color:var(--dim);padding:6px 9px;border-radius:4px;cursor:pointer}
+.savebar button:active{transform:scale(.94)}
+.savestatus{font-size:9px;color:var(--mint);margin-left:auto}
+.savestatus.warn{color:var(--coral)}
+.modal{position:fixed;inset:0;background:rgba(5,9,15,.85);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal.on{display:flex}
+.modalbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;max-width:520px;width:100%}
+.modalbox h3{font-family:'Archivo',sans-serif;font-size:13px;margin-bottom:8px}
+.modalbox textarea{width:100%;height:120px;background:var(--ink);border:1px solid var(--line);color:var(--text);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;padding:8px;border-radius:5px;resize:vertical}
+.modalbox .mrow{display:flex;gap:6px;margin-top:8px}
+.modalbox .mrow button{flex:1;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:9px;
+  border-radius:5px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer}
+.modalbox .mrow button.primary{background:var(--amber);color:#101010;border-color:var(--amber)}
+.total{background:var(--panel2);border:1px solid var(--amber);border-radius:6px;padding:9px 11px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:baseline}
+.total b{font-family:'Archivo',sans-serif;font-size:20px;color:var(--amber)}
+.total span{font-size:10px;color:var(--dim);text-transform:uppercase}
+.search{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 10px;border-radius:5px;margin-bottom:7px}
+.search::placeholder{color:var(--dim)}
+</style>
+</head>
+<body>
+<h1>Draft Room <span>// 26·27</span></h1>
+<div class="sub">Tap → to queue · ✓ to draft to your team · ✕ marks drafted by others. Auto-saves on this device.</div>
+
+<div class="savebar">
+  <button id="btnReset">Reset draft</button>
+  <button id="btnExport">Export backup</button>
+  <button id="btnImport">Import backup</button>
+  <span class="savestatus" id="saveStatus"></span>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modalbox">
+    <h3 id="modalTitle">Backup</h3>
+    <textarea id="modalText" placeholder="Paste a backup code here to restore…"></textarea>
+    <div class="mrow">
+      <button id="modalCopy">Copy</button>
+      <button id="modalLoad" class="primary">Restore from text</button>
+      <button id="modalClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="views">
+  <button class="vbtn on" data-v="pool">Player Pool</button>
+  <button class="vbtn" data-v="queue">Queue <span class="badge" id="qb">0</span></button>
+  <button class="vbtn" data-v="team">My Team <span class="badge" id="tb">0</span></button>
+</div>
+
+<div id="poolControls">
+  <input class="search" id="search" placeholder="search player or club…">
+  <div class="controls" id="sorts">
+    <button class="ctl on" data-s="v">VORP</button>
+    <button class="ctl" data-s="d">Diff/G</button>
+    <button class="ctl" data-s="pts">Pts</button>
+    <button class="ctl" data-s="fpg">FP/G</button>
+    <button class="ctl" data-s="adp">ADP</button>
+  </div>
+  <div class="controls" id="filters">
+    <button class="ctl on" data-f="ALL">All</button>
+    <button class="ctl" data-f="D">D</button>
+    <button class="ctl" data-f="M">M</button>
+    <button class="ctl" data-f="F">F</button>
+    <button class="ctl" data-f="DUAL">Dual</button>
+    <button class="ctl" data-f="AVAIL">Hide taken</button>
+  </div>
+</div>
+
+<div id="list"></div>
+
+<script>
+const DATA = [{"n": "Bruno Fernandes", "c": "MUN", "p": "M", "fpg": 18.02, "gp": 35, "pts": 631, "v": 328, "d": 9.37, "adp": 2.1}, {"n": "James Tarkowski", "c": "EVE", "p": "D", "fpg": 13.52, "gp": 36, "pts": 487, "v": 168, "d": 4.66, "adp": 28.2}, {"n": "Virgil van Dijk", "c": "LIV", "p": "D", "fpg": 13.23, "gp": 34, "pts": 450, "v": 149, "d": 4.37, "adp": 30.1}, {"n": "Anton Stach", "c": "LEE", "p": "M", "fpg": 13.24, "gp": 29, "pts": 384, "v": 133, "d": 4.59, "adp": 11.5}, {"n": "Dominik Szoboszlai", "c": "LIV", "p": "D,M", "fpg": 11.75, "gp": 36, "pts": 423, "v": 112, "d": 3.1, "adp": 5.6}, {"n": "Rayan Cherki", "c": "MCI", "p": "M", "fpg": 11.92, "gp": 33, "pts": 393, "v": 108, "d": 3.27, "adp": 13.4}, {"n": "Bukayo Saka", "c": "ARS", "p": "M,F", "fpg": 13.27, "gp": 23, "pts": 305, "v": 106, "d": 4.62, "adp": 3.0}, {"n": "Erling Haaland", "c": "MCI", "p": "F", "fpg": 11.66, "gp": 34, "pts": 396, "v": 97, "d": 2.84, "adp": 1.7}, {"n": "Bruno Guimaraes", "c": "NEW", "p": "M", "fpg": 11.64, "gp": 32, "pts": 372, "v": 96, "d": 2.99, "adp": 25.4}, {"n": "Gabriel Magalhaes", "c": "ARS", "p": "D", "fpg": 12.12, "gp": 29, "pts": 351, "v": 95, "d": 3.26, "adp": 30.6}, {"n": "Nordi Mukiele", "c": "SUN", "p": "D", "fpg": 11.44, "gp": 29, "pts": 332, "v": 75, "d": 2.58, "adp": 47.3}, {"n": "Daniel Munoz", "c": "CRY", "p": "D,M", "fpg": 11.09, "gp": 30, "pts": 333, "v": 73, "d": 2.44, "adp": 18.4}, {"n": "Antoine Semenyo", "c": "MCI", "p": "M,F", "fpg": 10.59, "gp": 37, "pts": 392, "v": 72, "d": 1.94, "adp": 4.4}, {"n": "Pascal Gross", "c": "BHA", "p": "M", "fpg": 11.4, "gp": 26, "pts": 296, "v": 72, "d": 2.75, "adp": 40.5}, {"n": "Morgan Gibbs-White", "c": "NOT", "p": "M", "fpg": 10.62, "gp": 36, "pts": 382, "v": 71, "d": 1.97, "adp": 12.1}, {"n": "Marc Guehi", "c": "MCI", "p": "D", "fpg": 10.89, "gp": 35, "pts": 381, "v": 71, "d": 2.03, "adp": null}, {"n": "Matheus Cunha", "c": "MUN", "p": "M,F", "fpg": 10.81, "gp": 33, "pts": 357, "v": 71, "d": 2.16, "adp": 16.4}, {"n": "Sepp van den Berg", "c": "BRF", "p": "D", "fpg": 11.06, "gp": 32, "pts": 354, "v": 70, "d": 2.2, "adp": null}, {"n": "James Garner", "c": "EVE", "p": "D,M", "fpg": 10.83, "gp": 32, "pts": 347, "v": 70, "d": 2.18, "adp": 24.7}, {"n": "Declan Rice", "c": "ARS", "p": "M", "fpg": 10.96, "gp": 30, "pts": 329, "v": 69, "d": 2.31, "adp": 9.6}, {"n": "Cole Palmer", "c": "CHE", "p": "M", "fpg": 10.65, "gp": 33, "pts": 351, "v": 66, "d": 2.0, "adp": 27.9}, {"n": "Enzo Le Fee", "c": "SUN", "p": "M,F", "fpg": 10.45, "gp": 36, "pts": 376, "v": 65, "d": 1.8, "adp": 55.6}, {"n": "Jeremy Doku", "c": "MCI", "p": "M,F", "fpg": 10.77, "gp": 30, "pts": 323, "v": 64, "d": 2.12, "adp": 27.2}, {"n": "Malick Thiaw", "c": "NEW", "p": "D", "fpg": 10.69, "gp": 35, "pts": 374, "v": 64, "d": 1.83, "adp": 96.4}, {"n": "Danny Ballard", "c": "SUN", "p": "D", "fpg": 11.12, "gp": 26, "pts": 289, "v": 59, "d": 2.26, "adp": 62.0}, {"n": "Bryan Mbeumo", "c": "MUN", "p": "M,F", "fpg": 10.3, "gp": 35, "pts": 360, "v": 58, "d": 1.65, "adp": 38.5}, {"n": "Chris Richards", "c": "CRY", "p": "D", "fpg": 10.73, "gp": 28, "pts": 300, "v": 52, "d": 1.87, "adp": null}, {"n": "Michael Keane", "c": "EVE", "p": "D", "fpg": 10.78, "gp": 26, "pts": 280, "v": 50, "d": 1.92, "adp": null}, {"n": "Neco Williams", "c": "NOT", "p": "D", "fpg": 10.22, "gp": 36, "pts": 368, "v": 49, "d": 1.36, "adp": 73.4}, {"n": "Casemiro", "c": "MUN", "p": "M", "fpg": 10.13, "gp": 30, "pts": 304, "v": 44, "d": 1.48, "adp": null}, {"n": "Omar Alderete", "c": "SUN", "p": "D", "fpg": 10.25, "gp": 30, "pts": 308, "v": 42, "d": 1.39, "adp": null}, {"n": "Dan Burn", "c": "NEW", "p": "D", "fpg": 10.09, "gp": 32, "pts": 323, "v": 39, "d": 1.23, "adp": null}, {"n": "Nathan Collins", "c": "BRF", "p": "D", "fpg": 9.94, "gp": 36, "pts": 358, "v": 39, "d": 1.08, "adp": null}, {"n": "Joao Pedro", "c": "CHE", "p": "M,F", "fpg": 9.86, "gp": 32, "pts": 316, "v": 39, "d": 1.21, "adp": 30.4}, {"n": "Pedro Porro", "c": "TOT", "p": "D", "fpg": 10.01, "gp": 34, "pts": 340, "v": 39, "d": 1.15, "adp": 34.2}, {"n": "Antonee Robinson", "c": "FUL", "p": "D", "fpg": 10.08, "gp": 31, "pts": 312, "v": 38, "d": 1.22, "adp": 62.6}, {"n": "Alexander Isak", "c": "LIV", "p": "F", "fpg": 10.01, "gp": 30, "pts": 300, "v": 36, "d": 1.19, "adp": 30.4}, {"n": "Enzo Fernandez", "c": "CHE", "p": "M", "fpg": 9.81, "gp": 31, "pts": 304, "v": 36, "d": 1.16, "adp": 21.4}, {"n": "Jaka Bijol", "c": "LEE", "p": "D", "fpg": 10.28, "gp": 25, "pts": 257, "v": 36, "d": 1.42, "adp": null}, {"n": "Ibrahima Konate", "c": "LIV", "p": "D", "fpg": 9.88, "gp": 34, "pts": 336, "v": 35, "d": 1.02, "adp": null}, {"n": "Florian Wirtz", "c": "LIV", "p": "M", "fpg": 9.51, "gp": 35, "pts": 333, "v": 30, "d": 0.86, "adp": 6.7}, {"n": "Cristian Romero", "c": "TOT", "p": "D", "fpg": 10.43, "gp": 18, "pts": 188, "v": 28, "d": 1.57, "adp": null}, {"n": "Pascal Struijk", "c": "LEE", "p": "D", "fpg": 9.65, "gp": 34, "pts": 328, "v": 27, "d": 0.79, "adp": null}, {"n": "Marcus Tavernier", "c": "BOU", "p": "M", "fpg": 9.4, "gp": 32, "pts": 301, "v": 24, "d": 0.75, "adp": 39.4}, {"n": "Amad Diallo", "c": "MUN", "p": "M,F", "fpg": 9.44, "gp": 30, "pts": 283, "v": 24, "d": 0.79, "adp": 52.7}, {"n": "Patrick Dorgu", "c": "MUN", "p": "D,M", "fpg": 9.63, "gp": 21, "pts": 202, "v": 21, "d": 0.98, "adp": null}, {"n": "Jan-Paul van Hecke", "c": "BHA", "p": "D", "fpg": 9.42, "gp": 35, "pts": 330, "v": 20, "d": 0.56, "adp": 78.8}, {"n": "Maxence Lacroix", "c": "CRY", "p": "D", "fpg": 9.41, "gp": 33, "pts": 311, "v": 18, "d": 0.55, "adp": 82.6}, {"n": "Matthijs de Ligt", "c": "MUN", "p": "D", "fpg": 9.82, "gp": 19, "pts": 187, "v": 18, "d": 0.96, "adp": null}, {"n": "Harry Maguire", "c": "MUN", "p": "D", "fpg": 9.54, "gp": 26, "pts": 248, "v": 18, "d": 0.68, "adp": null}, {"n": "Elliot Anderson", "c": "NOT", "p": "M", "fpg": 9.15, "gp": 35, "pts": 320, "v": 18, "d": 0.5, "adp": null}, {"n": "William Saliba", "c": "ARS", "p": "D", "fpg": 9.54, "gp": 22, "pts": 210, "v": 15, "d": 0.68, "adp": null}, {"n": "Jake O'Brien", "c": "EVE", "p": "D", "fpg": 9.32, "gp": 31, "pts": 289, "v": 14, "d": 0.46, "adp": null}, {"n": "Sven Botman", "c": "NEW", "p": "D", "fpg": 9.6, "gp": 19, "pts": 182, "v": 14, "d": 0.74, "adp": 92.7}, {"n": "Yankuba Minteh", "c": "BHA", "p": "M,F", "fpg": 9.04, "gp": 33, "pts": 298, "v": 13, "d": 0.39, "adp": null}, {"n": "Joachim Andersen", "c": "FUL", "p": "D", "fpg": 9.28, "gp": 32, "pts": 297, "v": 13, "d": 0.42, "adp": null}, {"n": "Dejan Kulusevski", "c": "TOT", "p": "M,F", "fpg": 9.05, "gp": 32, "pts": 290, "v": 13, "d": 0.4, "adp": null}, {"n": "Iliman Ndiaye", "c": "EVE", "p": "M,F", "fpg": 9.01, "gp": 32, "pts": 288, "v": 12, "d": 0.36, "adp": 30.9}, {"n": "Son Heung-Min", "c": "TOT", "p": "M,F", "fpg": 9.06, "gp": 30, "pts": 272, "v": 12, "d": 0.41, "adp": null}, {"n": "Youri Tielemans", "c": "AVL", "p": "M", "fpg": 9.04, "gp": 29, "pts": 262, "v": 11, "d": 0.39, "adp": 53.8}, {"n": "Mohammed Kudus", "c": "TOT", "p": "M,F", "fpg": 9.05, "gp": 24, "pts": 217, "v": 10, "d": 0.4, "adp": 32.0}, {"n": "Konstantinos Mavropanos", "c": "WHU", "p": "D", "fpg": 9.15, "gp": 32, "pts": 293, "v": 9, "d": 0.29, "adp": null}, {"n": "Harry Wilson", "c": "FUL", "p": "M,F", "fpg": 8.94, "gp": 32, "pts": 286, "v": 9, "d": 0.29, "adp": 47.5}, {"n": "Matheus Nunes", "c": "MCI", "p": "D,M", "fpg": 8.94, "gp": 31, "pts": 277, "v": 9, "d": 0.29, "adp": null}, {"n": "Alex Iwobi", "c": "FUL", "p": "M,F", "fpg": 8.82, "gp": 32, "pts": 282, "v": 5, "d": 0.17, "adp": 69.6}, {"n": "James Hill", "c": "BOU", "p": "D", "fpg": 9.07, "gp": 22, "pts": 200, "v": 5, "d": 0.21, "adp": 44.6}, {"n": "Fabian Schar", "c": "NEW", "p": "D", "fpg": 9.04, "gp": 22, "pts": 199, "v": 4, "d": 0.18, "adp": null}, {"n": "Mateus Goncalo Espanha Fernandes", "c": "WHU", "p": "M,F", "fpg": 8.76, "gp": 36, "pts": 315, "v": 4, "d": 0.11, "adp": null}, {"n": "Phil Foden", "c": "MCI", "p": "M,F", "fpg": 8.78, "gp": 31, "pts": 272, "v": 4, "d": 0.13, "adp": null}, {"n": "Rayan", "c": "BOU", "p": "M,F", "fpg": 8.94, "gp": 15, "pts": 134, "v": 4, "d": 0.29, "adp": 19.1}, {"n": "Wesley Fofana", "c": "CHE", "p": "D", "fpg": 9.01, "gp": 21, "pts": 189, "v": 3, "d": 0.15, "adp": null}, {"n": "Morgan Rogers", "c": "AVL", "p": "M,F", "fpg": 8.72, "gp": 37, "pts": 323, "v": 3, "d": 0.07, "adp": 25.5}, {"n": "Adrien Truffert", "c": "BOU", "p": "D", "fpg": 8.9, "gp": 38, "pts": 338, "v": 2, "d": 0.04, "adp": 63.4}, {"n": "Jarrad Branthwaite", "c": "EVE", "p": "D", "fpg": 8.9, "gp": 17, "pts": 151, "v": 1, "d": 0.04, "adp": null}, {"n": "Josko Gvardiol", "c": "MCI", "p": "D", "fpg": 8.91, "gp": 25, "pts": 223, "v": 1, "d": 0.05, "adp": 97.0}, {"n": "Mikkel Damsgaard", "c": "BRF", "p": "M", "fpg": 8.68, "gp": 35, "pts": 304, "v": 1, "d": 0.03, "adp": 80.6}, {"n": "Dango Ouattara", "c": "BRF", "p": "M,F", "fpg": 8.68, "gp": 32, "pts": 278, "v": 1, "d": 0.03, "adp": 57.3}, {"n": "Marcos Senesi", "c": "BOU", "p": "D", "fpg": 8.86, "gp": 32, "pts": 284, "v": 0, "d": 0.0, "adp": null}, {"n": "Lucas Paqueta", "c": "WHU", "p": "M,F", "fpg": 8.66, "gp": 23, "pts": 199, "v": 0, "d": 0.01, "adp": null}, {"n": "Nico O'Reilly", "c": "MCI", "p": "D,M", "fpg": 8.65, "gp": 25, "pts": 216, "v": 0, "d": 0.0, "adp": null}, {"n": "Trevoh Chalobah", "c": "CHE", "p": "D", "fpg": 8.74, "gp": 31, "pts": 271, "v": -4, "d": -0.12, "adp": null}, {"n": "El Hadji Malick Diouf", "c": "WHU", "p": "D,M", "fpg": 8.53, "gp": 32, "pts": 273, "v": -4, "d": -0.12, "adp": null}, {"n": "Kevin Danso", "c": "TOT", "p": "D", "fpg": 8.62, "gp": 19, "pts": 164, "v": -5, "d": -0.24, "adp": null}, {"n": "Illia Zabarnyi", "c": "BOU", "p": "D", "fpg": 8.72, "gp": 36, "pts": 314, "v": -5, "d": -0.14, "adp": null}, {"n": "Ryan Gravenberch", "c": "LIV", "p": "M", "fpg": 8.47, "gp": 36, "pts": 305, "v": -6, "d": -0.18, "adp": null}, {"n": "Diogo Dalot", "c": "MUN", "p": "D,M", "fpg": 8.43, "gp": 34, "pts": 287, "v": -7, "d": -0.22, "adp": null}, {"n": "James Justin", "c": "LEE", "p": "D,M", "fpg": 8.42, "gp": 31, "pts": 261, "v": -7, "d": -0.23, "adp": null}, {"n": "Ladislav Krejci", "c": "WOL", "p": "D,M", "fpg": 8.36, "gp": 28, "pts": 234, "v": -8, "d": -0.29, "adp": null}, {"n": "Hjalmar Ekdal", "c": "BUR", "p": "D", "fpg": 8.43, "gp": 19, "pts": 160, "v": -8, "d": -0.43, "adp": null}, {"n": "Piero Hincapie", "c": "ARS", "p": "D", "fpg": 8.56, "gp": 25, "pts": 214, "v": -8, "d": -0.3, "adp": null}, {"n": "Ethan Ampadu", "c": "LEE", "p": "D,M", "fpg": 8.43, "gp": 35, "pts": 295, "v": -8, "d": -0.22, "adp": null}, {"n": "Mats Wieffer", "c": "BHA", "p": "D,M", "fpg": 8.28, "gp": 26, "pts": 215, "v": -10, "d": -0.37, "adp": 105.7}, {"n": "Emmanuel Agbadou", "c": "WOL", "p": "D", "fpg": 8.11, "gp": 15, "pts": 122, "v": -11, "d": -0.75, "adp": null}, {"n": "Vitalii Mykolenko", "c": "EVE", "p": "D", "fpg": 8.55, "gp": 34, "pts": 291, "v": -11, "d": -0.31, "adp": null}, {"n": "Murillo", "c": "NOT", "p": "D", "fpg": 8.46, "gp": 29, "pts": 245, "v": -12, "d": -0.4, "adp": null}, {"n": "Cody Gakpo", "c": "LIV", "p": "M,F", "fpg": 8.32, "gp": 38, "pts": 316, "v": -13, "d": -0.33, "adp": 26.0}, {"n": "Nikola Milenkovic", "c": "NOT", "p": "D", "fpg": 8.51, "gp": 38, "pts": 323, "v": -13, "d": -0.35, "adp": null}, {"n": "Hugo Bueno", "c": "WOL", "p": "D,M", "fpg": 8.26, "gp": 35, "pts": 289, "v": -14, "d": -0.39, "adp": null}, {"n": "Kiernan Dewsbury-Hall", "c": "EVE", "p": "M", "fpg": 8.11, "gp": 25, "pts": 203, "v": -14, "d": -0.54, "adp": 54.4}, {"n": "Kenny Tete", "c": "FUL", "p": "D", "fpg": 8.21, "gp": 22, "pts": 181, "v": -14, "d": -0.65, "adp": 211.1}, {"n": "Christian Norgaard", "c": "ARS", "p": "M", "fpg": 7.8, "gp": 16, "pts": 125, "v": -14, "d": -0.85, "adp": null}, {"n": "Ola Aina", "c": "NOT", "p": "D", "fpg": 8.22, "gp": 24, "pts": 197, "v": -15, "d": -0.64, "adp": null}, {"n": "Jurrien Timber", "c": "ARS", "p": "D", "fpg": 8.34, "gp": 30, "pts": 250, "v": -16, "d": -0.52, "adp": null}, {"n": "Rayan Ait-Nouri", "c": "MCI", "p": "D,M", "fpg": 7.99, "gp": 24, "pts": 192, "v": -16, "d": -0.66, "adp": null}, {"n": "Mateo Kovacic", "c": "MCI", "p": "M", "fpg": 7.55, "gp": 15, "pts": 113, "v": -16, "d": -1.1, "adp": null}, {"n": "Aaron Wan-Bissaka", "c": "WHU", "p": "D,M", "fpg": 8.1, "gp": 29, "pts": 235, "v": -16, "d": -0.55, "adp": null}, {"n": "Reece James", "c": "CHE", "p": "D,M", "fpg": 8.04, "gp": 26, "pts": 209, "v": -16, "d": -0.61, "adp": 67.6}, {"n": "Josh Cullen", "c": "BUR", "p": "M", "fpg": 7.62, "gp": 18, "pts": 137, "v": -19, "d": -1.03, "adp": null}, {"n": "Igor Thiago", "c": "BRF", "p": "F", "fpg": 8.11, "gp": 28, "pts": 227, "v": -20, "d": -0.71, "adp": 30.4}, {"n": "Ruben Dias", "c": "MCI", "p": "D", "fpg": 8.1, "gp": 26, "pts": 211, "v": -20, "d": -0.76, "adp": null}, {"n": "Pedro Neto", "c": "CHE", "p": "M,F", "fpg": 8.07, "gp": 34, "pts": 274, "v": -20, "d": -0.58, "adp": 35.7}, {"n": "Joe Rodon", "c": "LEE", "p": "D", "fpg": 8.26, "gp": 35, "pts": 289, "v": -21, "d": -0.6, "adp": null}, {"n": "Adam Wharton", "c": "CRY", "p": "M", "fpg": 7.93, "gp": 29, "pts": 230, "v": -21, "d": -0.72, "adp": null}, {"n": "Jack Grealish", "c": "EVE", "p": "M", "fpg": 7.61, "gp": 20, "pts": 152, "v": -21, "d": -1.04, "adp": null}, {"n": "Lewis Hall", "c": "NEW", "p": "D", "fpg": 8.12, "gp": 29, "pts": 235, "v": -21, "d": -0.74, "adp": 80.6}, {"n": "Quilindschy Hartman", "c": "BUR", "p": "D", "fpg": 7.8, "gp": 21, "pts": 164, "v": -22, "d": -1.06, "adp": null}, {"n": "Michael Kayode", "c": "BRF", "p": "D", "fpg": 8.06, "gp": 28, "pts": 226, "v": -22, "d": -0.8, "adp": null}, {"n": "Conor Gallagher", "c": "TOT", "p": "M", "fpg": 7.28, "gp": 16, "pts": 116, "v": -22, "d": -1.37, "adp": null}, {"n": "Tyrone Mings", "c": "AVL", "p": "D", "fpg": 7.4, "gp": 16, "pts": 118, "v": -23, "d": -1.46, "adp": null}, {"n": "Joao Palhinha", "c": "TOT", "p": "M", "fpg": 7.94, "gp": 33, "pts": 262, "v": -23, "d": -0.71, "adp": null}, {"n": "Diego Gomez", "c": "BHA", "p": "M,F", "fpg": 7.77, "gp": 26, "pts": 202, "v": -23, "d": -0.88, "adp": 105.9}, {"n": "Kevin Schade", "c": "BRF", "p": "M,F", "fpg": 7.98, "gp": 36, "pts": 287, "v": -24, "d": -0.67, "adp": 69.2}, {"n": "Eberechi Eze", "c": "ARS", "p": "M,F", "fpg": 7.92, "gp": 33, "pts": 261, "v": -24, "d": -0.73, "adp": null}, {"n": "Ferdi Kadioglu", "c": "BHA", "p": "D,M", "fpg": 7.67, "gp": 26, "pts": 199, "v": -25, "d": -0.98, "adp": null}, {"n": "Granit Xhaka", "c": "SUN", "p": "M", "fpg": 7.89, "gp": 34, "pts": 268, "v": -26, "d": -0.76, "adp": null}, {"n": "Jaydee Canvot", "c": "CRY", "p": "D", "fpg": 7.56, "gp": 20, "pts": 151, "v": -26, "d": -1.3, "adp": null}, {"n": "Maxime Esteve", "c": "BUR", "p": "D", "fpg": 8.07, "gp": 34, "pts": 274, "v": -27, "d": -0.79, "adp": null}, {"n": "Trai Hume", "c": "SUN", "p": "D,M", "fpg": 7.92, "gp": 38, "pts": 301, "v": -28, "d": -0.73, "adp": 133.5}, {"n": "Lucas Digne", "c": "AVL", "p": "D", "fpg": 7.93, "gp": 31, "pts": 246, "v": -29, "d": -0.93, "adp": null}, {"n": "Riccardo Calafiori", "c": "ARS", "p": "D", "fpg": 7.67, "gp": 24, "pts": 184, "v": -29, "d": -1.19, "adp": 79.7}, {"n": "Yerson Mosquera", "c": "WOL", "p": "D", "fpg": 7.3, "gp": 19, "pts": 139, "v": -30, "d": -1.56, "adp": null}, {"n": "Martin Odegaard", "c": "ARS", "p": "M", "fpg": 7.5, "gp": 26, "pts": 195, "v": -30, "d": -1.15, "adp": null}, {"n": "Kaoru Mitoma", "c": "BHA", "p": "M,F", "fpg": 7.56, "gp": 29, "pts": 219, "v": -32, "d": -1.09, "adp": 71.3}, {"n": "Lucas Pires", "c": "BUR", "p": "D,M", "fpg": 6.99, "gp": 20, "pts": 140, "v": -33, "d": -1.66, "adp": null}, {"n": "Tosin Adarabioyo", "c": "CHE", "p": "D", "fpg": 7.01, "gp": 18, "pts": 126, "v": -33, "d": -1.85, "adp": null}, {"n": "Moises Caicedo", "c": "CHE", "p": "D,M", "fpg": 7.7, "gp": 35, "pts": 270, "v": -33, "d": -0.95, "adp": null}, {"n": "Jaidon Anthony", "c": "BUR", "p": "M,F", "fpg": 7.73, "gp": 37, "pts": 286, "v": -34, "d": -0.92, "adp": null}, {"n": "James Ward-Prowse", "c": "BUR", "p": "M", "fpg": 6.94, "gp": 20, "pts": 139, "v": -34, "d": -1.71, "adp": null}, {"n": "Joelinton", "c": "NEW", "p": "M,F", "fpg": 7.43, "gp": 28, "pts": 208, "v": -34, "d": -1.22, "adp": null}, {"n": "Omar Marmoush", "c": "MCI", "p": "M,F", "fpg": 6.79, "gp": 19, "pts": 129, "v": -35, "d": -1.86, "adp": null}, {"n": "Dwight McNeil", "c": "EVE", "p": "M,F", "fpg": 7.04, "gp": 22, "pts": 155, "v": -35, "d": -1.61, "adp": null}, {"n": "Xavi Simons", "c": "TOT", "p": "M,F", "fpg": 7.37, "gp": 28, "pts": 206, "v": -36, "d": -1.28, "adp": null}, {"n": "Joao Gomes", "c": "WOL", "p": "M", "fpg": 7.63, "gp": 35, "pts": 267, "v": -36, "d": -1.02, "adp": null}, {"n": "Kieran Trippier", "c": "NEW", "p": "D", "fpg": 7.24, "gp": 22, "pts": 159, "v": -36, "d": -1.62, "adp": null}, {"n": "Bafode Diakite", "c": "BOU", "p": "D", "fpg": 6.86, "gp": 18, "pts": 123, "v": -36, "d": -2.0, "adp": null}, {"n": "Boubacar Kamara", "c": "AVL", "p": "M", "fpg": 6.93, "gp": 21, "pts": 146, "v": -36, "d": -1.72, "adp": null}, {"n": "Abdukodir Khusanov", "c": "MCI", "p": "D", "fpg": 6.55, "gp": 16, "pts": 105, "v": -37, "d": -2.31, "adp": null}, {"n": "Matt Doherty", "c": "WOL", "p": "D", "fpg": 6.82, "gp": 18, "pts": 123, "v": -37, "d": -2.04, "adp": null}, {"n": "Callum Hudson-Odoi", "c": "NOT", "p": "M,F", "fpg": 7.4, "gp": 30, "pts": 222, "v": -38, "d": -1.25, "adp": null}, {"n": "Tyrick Mitchell", "c": "CRY", "p": "D,M", "fpg": 7.65, "gp": 38, "pts": 291, "v": -38, "d": -1.0, "adp": 140.2}, {"n": "Max Kilman", "c": "WHU", "p": "D", "fpg": 7.41, "gp": 27, "pts": 200, "v": -39, "d": -1.45, "adp": null}, {"n": "Rodri", "c": "MCI", "p": "M", "fpg": 6.02, "gp": 15, "pts": 90, "v": -39, "d": -2.63, "adp": null}, {"n": "Ryan Sessegnon", "c": "FUL", "p": "D,M", "fpg": 6.97, "gp": 23, "pts": 160, "v": -39, "d": -1.68, "adp": null}, {"n": "Mikel Merino", "c": "ARS", "p": "M,F", "fpg": 6.78, "gp": 21, "pts": 142, "v": -39, "d": -1.87, "adp": null}, {"n": "Sasa Lukic", "c": "FUL", "p": "M", "fpg": 7.15, "gp": 27, "pts": 193, "v": -40, "d": -1.5, "adp": null}, {"n": "Leandro Trossard", "c": "ARS", "p": "M,F", "fpg": 7.45, "gp": 33, "pts": 246, "v": -40, "d": -1.2, "adp": null}, {"n": "Valentin Castellanos", "c": "WHU", "p": "F", "fpg": 6.54, "gp": 18, "pts": 118, "v": -41, "d": -2.28, "adp": null}, {"n": "Idrissa Gueye", "c": "EVE", "p": "M", "fpg": 7.23, "gp": 29, "pts": 210, "v": -41, "d": -1.42, "adp": null}, {"n": "Lisandro Martinez", "c": "MUN", "p": "D", "fpg": 6.72, "gp": 19, "pts": 128, "v": -41, "d": -2.14, "adp": null}, {"n": "Ollie Watkins", "c": "AVL", "p": "F", "fpg": 7.7, "gp": 37, "pts": 285, "v": -41, "d": -1.12, "adp": 30.4}, {"n": "Alex Scott", "c": "BOU", "p": "M", "fpg": 7.32, "gp": 31, "pts": 227, "v": -41, "d": -1.33, "adp": null}, {"n": "Alexis Mac Allister", "c": "LIV", "p": "M", "fpg": 7.38, "gp": 33, "pts": 244, "v": -42, "d": -1.27, "adp": null}, {"n": "Andreas Pereira", "c": "FUL", "p": "M", "fpg": 7.39, "gp": 33, "pts": 244, "v": -42, "d": -1.26, "adp": null}, {"n": "Noni Madueke", "c": "ARS", "p": "M,F", "fpg": 7.11, "gp": 28, "pts": 199, "v": -43, "d": -1.54, "adp": null}, {"n": "Lewis Cook", "c": "BOU", "p": "D,M", "fpg": 6.84, "gp": 24, "pts": 164, "v": -43, "d": -1.81, "adp": null}, {"n": "Rodrigo Bentancur", "c": "TOT", "p": "M", "fpg": 6.98, "gp": 26, "pts": 181, "v": -43, "d": -1.67, "adp": null}, {"n": "Amadou Onana", "c": "AVL", "p": "M", "fpg": 6.93, "gp": 25, "pts": 173, "v": -43, "d": -1.72, "adp": null}, {"n": "Reinildo", "c": "SUN", "p": "D", "fpg": 7.05, "gp": 25, "pts": 176, "v": -45, "d": -1.81, "adp": null}, {"n": "Alex Moreno", "c": "AVL", "p": "D", "fpg": 5.81, "gp": 15, "pts": 87, "v": -46, "d": -3.05, "adp": null}, {"n": "Kai Havertz", "c": "ARS", "p": "F", "fpg": 5.95, "gp": 16, "pts": 95, "v": -46, "d": -2.87, "adp": null}, {"n": "Mathys Tel", "c": "TOT", "p": "M,F", "fpg": 6.82, "gp": 25, "pts": 170, "v": -46, "d": -1.83, "adp": 78.2}, {"n": "Lewis Miley", "c": "NEW", "p": "D,M", "fpg": 6.3, "gp": 20, "pts": 126, "v": -47, "d": -2.35, "adp": null}, {"n": "Tyler Adams", "c": "BOU", "p": "M", "fpg": 6.83, "gp": 26, "pts": 178, "v": -47, "d": -1.82, "adp": null}, {"n": "Toti", "c": "WOL", "p": "D", "fpg": 6.82, "gp": 23, "pts": 157, "v": -47, "d": -2.04, "adp": null}, {"n": "Bashir Humphreys", "c": "BUR", "p": "D", "fpg": 6.52, "gp": 20, "pts": 130, "v": -47, "d": -2.34, "adp": null}, {"n": "Dominic Solanke", "c": "TOT", "p": "F", "fpg": 6.27, "gp": 19, "pts": 119, "v": -48, "d": -2.55, "adp": 51.0}, {"n": "Matty Cash", "c": "AVL", "p": "D", "fpg": 7.34, "gp": 32, "pts": 235, "v": -49, "d": -1.52, "adp": 139.5}, {"n": "Bernardo Silva", "c": "MCI", "p": "M", "fpg": 7.3, "gp": 36, "pts": 263, "v": -49, "d": -1.35, "adp": null}, {"n": "Hugo Ekitike", "c": "LIV", "p": "F", "fpg": 7.21, "gp": 31, "pts": 224, "v": -50, "d": -1.61, "adp": null}, {"n": "Crysencio Summerville", "c": "WHU", "p": "M,F", "fpg": 6.81, "gp": 27, "pts": 184, "v": -50, "d": -1.84, "adp": null}, {"n": "Konstantinos Tsimikas", "c": "LIV", "p": "D", "fpg": 6.06, "gp": 18, "pts": 109, "v": -50, "d": -2.8, "adp": null}, {"n": "Axel Tuanzebe", "c": "BUR", "p": "D", "fpg": 5.88, "gp": 17, "pts": 100, "v": -51, "d": -2.98, "adp": null}, {"n": "Justin Kluivert", "c": "BOU", "p": "M,F", "fpg": 6.6, "gp": 25, "pts": 165, "v": -51, "d": -2.05, "adp": null}, {"n": "Milos Kerkez", "c": "LIV", "p": "D", "fpg": 7.41, "gp": 35, "pts": 259, "v": -51, "d": -1.45, "adp": null}, {"n": "Omari Hutchinson", "c": "NOT", "p": "M,F", "fpg": 6.99, "gp": 31, "pts": 217, "v": -51, "d": -1.66, "adp": 138.1}, {"n": "Douglas Luiz", "c": "NOT", "p": "M", "fpg": 6.16, "gp": 21, "pts": 129, "v": -52, "d": -2.49, "adp": null}, {"n": "Lewis Dunk", "c": "BHA", "p": "D", "fpg": 7.12, "gp": 30, "pts": 214, "v": -52, "d": -1.74, "adp": null}, {"n": "Rio Ngumoha", "c": "LIV", "p": "M,F", "fpg": 5.93, "gp": 19, "pts": 113, "v": -52, "d": -2.72, "adp": null}, {"n": "Alex Jimenez", "c": "BOU", "p": "D,M", "fpg": 6.98, "gp": 31, "pts": 216, "v": -52, "d": -1.67, "adp": null}, {"n": "Mateus Mane", "c": "WOL", "p": "M,F", "fpg": 5.74, "gp": 18, "pts": 103, "v": -52, "d": -2.91, "adp": null}, {"n": "Julio Enciso", "c": "BHA", "p": "M", "fpg": 6.53, "gp": 25, "pts": 163, "v": -53, "d": -2.12, "adp": null}, {"n": "Ryan Christie", "c": "BOU", "p": "M", "fpg": 6.66, "gp": 27, "pts": 180, "v": -54, "d": -1.99, "adp": null}, {"n": "Samuel Chukwueze", "c": "FUL", "p": "M,F", "fpg": 6.32, "gp": 23, "pts": 145, "v": -54, "d": -2.33, "adp": null}, {"n": "Zian Flemming", "c": "BUR", "p": "M,F", "fpg": 6.8, "gp": 29, "pts": 197, "v": -54, "d": -1.85, "adp": null}, {"n": "Luke Shaw", "c": "MUN", "p": "D", "fpg": 6.83, "gp": 27, "pts": 184, "v": -55, "d": -2.03, "adp": null}, {"n": "Gabriel Gudmundsson", "c": "LEE", "p": "D,M", "fpg": 6.93, "gp": 32, "pts": 222, "v": -55, "d": -1.72, "adp": null}, {"n": "Martin Zubimendi", "c": "ARS", "p": "M", "fpg": 7.21, "gp": 38, "pts": 274, "v": -55, "d": -1.44, "adp": null}, {"n": "Tariq Lamptey", "c": "BHA", "p": "D", "fpg": 5.15, "gp": 15, "pts": 77, "v": -56, "d": -3.71, "adp": null}, {"n": "Yasin Ayari", "c": "BHA", "p": "M", "fpg": 6.84, "gp": 31, "pts": 212, "v": -56, "d": -1.81, "adp": null}, {"n": "John McGinn", "c": "AVL", "p": "M", "fpg": 6.83, "gp": 31, "pts": 212, "v": -56, "d": -1.82, "adp": 106.0}, {"n": "Ismaila Sarr", "c": "CRY", "p": "M,F", "fpg": 6.87, "gp": 32, "pts": 220, "v": -57, "d": -1.78, "adp": null}, {"n": "Kristoffer Ajer", "c": "BRF", "p": "D", "fpg": 6.66, "gp": 26, "pts": 173, "v": -57, "d": -2.2, "adp": null}, {"n": "Conor Bradley", "c": "LIV", "p": "D", "fpg": 5.26, "gp": 16, "pts": 84, "v": -58, "d": -3.6, "adp": null}, {"n": "Vitaly Janelt", "c": "BRF", "p": "M", "fpg": 6.51, "gp": 27, "pts": 176, "v": -58, "d": -2.14, "adp": null}, {"n": "Noah Okafor", "c": "LEE", "p": "F", "fpg": 6.73, "gp": 28, "pts": 188, "v": -59, "d": -2.09, "adp": null}, {"n": "Nelson Semedo", "c": "WOL", "p": "D,M", "fpg": 6.92, "gp": 34, "pts": 235, "v": -59, "d": -1.73, "adp": null}, {"n": "Nico Gonzalez", "c": "MCI", "p": "M", "fpg": 5.7, "gp": 20, "pts": 114, "v": -59, "d": -2.95, "adp": null}, {"n": "Noussair Mazraoui", "c": "MUN", "p": "D,M", "fpg": 6.35, "gp": 26, "pts": 165, "v": -60, "d": -2.3, "adp": null}, {"n": "Florentino Ibrain Morris Luis", "c": "BUR", "p": "M", "fpg": 6.7, "gp": 31, "pts": 208, "v": -60, "d": -1.95, "adp": null}, {"n": "Dominic Calvert-Lewin", "c": "LEE", "p": "F", "fpg": 6.92, "gp": 32, "pts": 221, "v": -61, "d": -1.9, "adp": null}, {"n": "Ibrahim Sangare", "c": "NOT", "p": "M", "fpg": 6.0, "gp": 23, "pts": 138, "v": -61, "d": -2.65, "adp": null}, {"n": "Brajan Gruda", "c": "BHA", "p": "M", "fpg": 5.44, "gp": 19, "pts": 103, "v": -61, "d": -3.21, "adp": null}, {"n": "Jakub Kiwior", "c": "ARS", "p": "D", "fpg": 5.3, "gp": 17, "pts": 90, "v": -61, "d": -3.56, "adp": null}, {"n": "Timothy Castagne", "c": "FUL", "p": "D,M", "fpg": 6.43, "gp": 28, "pts": 180, "v": -62, "d": -2.22, "adp": null}, {"n": "Adam Armstrong", "c": "WOL", "p": "M,F", "fpg": 4.79, "gp": 16, "pts": 77, "v": -62, "d": -3.86, "adp": null}, {"n": "Merlin Rohl", "c": "EVE", "p": "M", "fpg": 4.8, "gp": 16, "pts": 77, "v": -62, "d": -3.85, "adp": null}, {"n": "Yeremy Pino", "c": "CRY", "p": "M,F", "fpg": 6.8, "gp": 34, "pts": 231, "v": -63, "d": -1.85, "adp": 84.7}, {"n": "Sean Longstaff", "c": "LEE", "p": "M", "fpg": 6.02, "gp": 24, "pts": 144, "v": -63, "d": -2.63, "adp": null}, {"n": "Oscar Bobb", "c": "FUL", "p": "M", "fpg": 4.69, "gp": 16, "pts": 75, "v": -63, "d": -3.96, "adp": null}, {"n": "Santiago Bueno", "c": "WOL", "p": "D", "fpg": 6.7, "gp": 29, "pts": 194, "v": -63, "d": -2.16, "adp": null}, {"n": "Jack Harrison", "c": "LEE", "p": "M,F", "fpg": 5.36, "gp": 19, "pts": 102, "v": -63, "d": -3.29, "adp": null}, {"n": "Nathan Ake", "c": "MCI", "p": "D", "fpg": 4.61, "gp": 15, "pts": 69, "v": -64, "d": -4.25, "adp": null}, {"n": "Jefferson Lerma", "c": "CRY", "p": "D,M", "fpg": 6.66, "gp": 32, "pts": 213, "v": -64, "d": -1.99, "adp": null}, {"n": "Valentino Livramento", "c": "NEW", "p": "D", "fpg": 6.2, "gp": 24, "pts": 149, "v": -64, "d": -2.66, "adp": null}, {"n": "Eli Kroupi", "c": "BOU", "p": "M,F", "fpg": 6.7, "gp": 33, "pts": 221, "v": -64, "d": -1.95, "adp": null}, {"n": "Kalvin Phillips", "c": "MCI", "p": "M", "fpg": 5.3, "gp": 19, "pts": 101, "v": -64, "d": -3.35, "adp": null}, {"n": "Estevao", "c": "CHE", "p": "M,F", "fpg": 5.76, "gp": 22, "pts": 127, "v": -64, "d": -2.89, "adp": null}, {"n": "Kevin", "c": "FUL", "p": "M,F", "fpg": 6.17, "gp": 26, "pts": 160, "v": -64, "d": -2.48, "adp": null}, {"n": "Sandro Tonali", "c": "NEW", "p": "M", "fpg": 6.79, "gp": 35, "pts": 238, "v": -65, "d": -1.86, "adp": null}, {"n": "Raul Jimenez", "c": "FUL", "p": "F", "fpg": 7.03, "gp": 37, "pts": 260, "v": -66, "d": -1.79, "adp": null}, {"n": "Leon Bailey", "c": "AVL", "p": "M,F", "fpg": 4.76, "gp": 17, "pts": 81, "v": -66, "d": -3.89, "adp": null}, {"n": "Issa Diop", "c": "FUL", "p": "D", "fpg": 4.73, "gp": 16, "pts": 76, "v": -66, "d": -4.13, "adp": null}, {"n": "Carlos Alcaraz", "c": "EVE", "p": "M", "fpg": 5.13, "gp": 19, "pts": 97, "v": -67, "d": -3.52, "adp": null}, {"n": "Yves Bissouma", "c": "TOT", "p": "M", "fpg": 4.69, "gp": 17, "pts": 80, "v": -67, "d": -3.96, "adp": null}, {"n": "Jacob Murphy", "c": "NEW", "p": "M,F", "fpg": 6.65, "gp": 34, "pts": 226, "v": -68, "d": -2.0, "adp": null}, {"n": "Tomas Soucek", "c": "WHU", "p": "M", "fpg": 6.72, "gp": 35, "pts": 235, "v": -68, "d": -1.93, "adp": null}, {"n": "Micky van de Ven", "c": "TOT", "p": "D", "fpg": 6.35, "gp": 27, "pts": 171, "v": -68, "d": -2.51, "adp": null}, {"n": "Jack Hinshelwood", "c": "BHA", "p": "D,M", "fpg": 6.15, "gp": 27, "pts": 166, "v": -68, "d": -2.5, "adp": null}, {"n": "Chris Wood", "c": "NOT", "p": "F", "fpg": 5.71, "gp": 22, "pts": 126, "v": -68, "d": -3.11, "adp": null}, {"n": "Gabriel Jesus", "c": "ARS", "p": "F", "fpg": 4.19, "gp": 15, "pts": 63, "v": -69, "d": -4.63, "adp": null}, {"n": "Jamie Gittens", "c": "CHE", "p": "M,F", "fpg": 4.35, "gp": 16, "pts": 70, "v": -69, "d": -4.3, "adp": null}, {"n": "Alejandro Garnacho", "c": "CHE", "p": "M,F", "fpg": 6.2, "gp": 28, "pts": 174, "v": -69, "d": -2.45, "adp": null}, {"n": "Manuel Ugarte", "c": "MUN", "p": "M", "fpg": 5.76, "gp": 24, "pts": 138, "v": -69, "d": -2.89, "adp": null}, {"n": "Simon Adingra", "c": "SUN", "p": "M,F", "fpg": 5.03, "gp": 19, "pts": 96, "v": -69, "d": -3.62, "adp": null}, {"n": "Brenden Aaronson", "c": "LEE", "p": "M,F", "fpg": 6.76, "gp": 37, "pts": 250, "v": -70, "d": -1.89, "adp": null}, {"n": "Pau Torres", "c": "AVL", "p": "D", "fpg": 5.69, "gp": 22, "pts": 125, "v": -70, "d": -3.17, "adp": null}, {"n": "Jayden Bogle", "c": "LEE", "p": "D,M", "fpg": 6.55, "gp": 34, "pts": 223, "v": -71, "d": -2.1, "adp": null}, {"n": "Chris Rigg", "c": "SUN", "p": "M", "fpg": 4.68, "gp": 18, "pts": 84, "v": -71, "d": -3.97, "adp": null}, {"n": "Habib Diarra", "c": "SUN", "p": "M", "fpg": 5.11, "gp": 20, "pts": 102, "v": -71, "d": -3.54, "adp": null}, {"n": "Ross Barkley", "c": "AVL", "p": "M", "fpg": 5.27, "gp": 21, "pts": 111, "v": -71, "d": -3.38, "adp": null}, {"n": "Georginio Rutter", "c": "BHA", "p": "M,F", "fpg": 6.32, "gp": 31, "pts": 196, "v": -72, "d": -2.33, "adp": null}, {"n": "Savio", "c": "MCI", "p": "M,F", "fpg": 5.88, "gp": 26, "pts": 153, "v": -72, "d": -2.77, "adp": null}, {"n": "Pape Sarr", "c": "TOT", "p": "M", "fpg": 6.26, "gp": 30, "pts": 188, "v": -72, "d": -2.39, "adp": null}, {"n": "Djed Spence", "c": "TOT", "p": "D,M", "fpg": 6.06, "gp": 28, "pts": 170, "v": -73, "d": -2.59, "adp": null}, {"n": "Cristhian Mosquera", "c": "ARS", "p": "D", "fpg": 5.21, "gp": 20, "pts": 104, "v": -73, "d": -3.65, "adp": null}, {"n": "Kobbie Mainoo", "c": "MUN", "p": "M", "fpg": 5.92, "gp": 27, "pts": 160, "v": -74, "d": -2.73, "adp": null}, {"n": "Tijjani Reijnders", "c": "MCI", "p": "M", "fpg": 6.02, "gp": 28, "pts": 169, "v": -74, "d": -2.63, "adp": null}, {"n": "Calvin Bassey", "c": "FUL", "p": "D", "fpg": 6.52, "gp": 32, "pts": 209, "v": -75, "d": -2.34, "adp": null}, {"n": "Freddie Potts", "c": "WHU", "p": "M", "fpg": 5.19, "gp": 22, "pts": 114, "v": -76, "d": -3.46, "adp": null}, {"n": "Maxim De Cuyper", "c": "BHA", "p": "D,M", "fpg": 6.08, "gp": 30, "pts": 182, "v": -77, "d": -2.57, "adp": null}, {"n": "Ilkay Gundogan", "c": "MCI", "p": "M", "fpg": 6.32, "gp": 33, "pts": 209, "v": -77, "d": -2.33, "adp": null}, {"n": "Benjamin Sesko", "c": "MUN", "p": "F", "fpg": 6.21, "gp": 30, "pts": 186, "v": -78, "d": -2.61, "adp": null}, {"n": "Richarlison", "c": "TOT", "p": "F", "fpg": 5.79, "gp": 26, "pts": 151, "v": -79, "d": -3.03, "adp": null}, {"n": "Jhon Arias", "c": "WOL", "p": "M,F", "fpg": 5.21, "gp": 23, "pts": 120, "v": -79, "d": -3.44, "adp": null}, {"n": "Jean-Clair Todibo", "c": "WHU", "p": "D", "fpg": 5.54, "gp": 24, "pts": 133, "v": -80, "d": -3.32, "adp": null}, {"n": "Joseph Gomez", "c": "LIV", "p": "D", "fpg": 4.14, "gp": 17, "pts": 70, "v": -80, "d": -4.72, "adp": null}, {"n": "Tim Iroegbunam", "c": "EVE", "p": "M", "fpg": 5.41, "gp": 25, "pts": 135, "v": -81, "d": -3.24, "adp": null}, {"n": "Soungoutou Magassa", "c": "WHU", "p": "M", "fpg": 4.97, "gp": 22, "pts": 109, "v": -81, "d": -3.68, "adp": null}, {"n": "Jean-Philippe Mateta", "c": "CRY", "p": "F", "fpg": 6.2, "gp": 31, "pts": 192, "v": -81, "d": -2.62, "adp": null}, {"n": "Mason Mount", "c": "MUN", "p": "M,F", "fpg": 4.78, "gp": 21, "pts": 100, "v": -81, "d": -3.87, "adp": null}, {"n": "Tyler Dibling", "c": "EVE", "p": "M,F", "fpg": 4.79, "gp": 21, "pts": 101, "v": -81, "d": -3.86, "adp": null}, {"n": "Eddie Nketiah", "c": "CRY", "p": "F", "fpg": 4.29, "gp": 18, "pts": 77, "v": -82, "d": -4.53, "adp": null}, {"n": "Ilia Gruev", "c": "LEE", "p": "M", "fpg": 5.07, "gp": 23, "pts": 117, "v": -82, "d": -3.58, "adp": null}, {"n": "Mads Roerslev", "c": "BRF", "p": "D", "fpg": 4.52, "gp": 19, "pts": 86, "v": -82, "d": -4.34, "adp": null}, {"n": "Dan Ndoye", "c": "NOT", "p": "M,F", "fpg": 5.18, "gp": 24, "pts": 124, "v": -83, "d": -3.47, "adp": null}, {"n": "Wilson Odobert", "c": "TOT", "p": "M,F", "fpg": 4.7, "gp": 21, "pts": 99, "v": -83, "d": -3.95, "adp": null}, {"n": "Kyle Walker-Peters", "c": "WHU", "p": "D,M", "fpg": 5.47, "gp": 26, "pts": 142, "v": -83, "d": -3.18, "adp": null}, {"n": "Rico Lewis", "c": "MCI", "p": "D,M", "fpg": 3.69, "gp": 17, "pts": 63, "v": -84, "d": -4.96, "adp": null}, {"n": "Mathias Jensen", "c": "BRF", "p": "M", "fpg": 6.01, "gp": 32, "pts": 192, "v": -84, "d": -2.64, "adp": null}, {"n": "Joel Veltman", "c": "BHA", "p": "D", "fpg": 5.21, "gp": 23, "pts": 120, "v": -84, "d": -3.65, "adp": null}, {"n": "Ao Tanaka", "c": "LEE", "p": "M", "fpg": 5.64, "gp": 28, "pts": 158, "v": -84, "d": -3.01, "adp": null}, {"n": "Emerson", "c": "WHU", "p": "D,M", "fpg": 5.95, "gp": 31, "pts": 184, "v": -84, "d": -2.7, "adp": null}, {"n": "Daichi Kamada", "c": "CRY", "p": "M,F", "fpg": 5.82, "gp": 30, "pts": 175, "v": -85, "d": -2.83, "adp": null}, {"n": "Evann Guessand", "c": "CRY", "p": "M,F", "fpg": 4.59, "gp": 21, "pts": 96, "v": -85, "d": -4.06, "adp": null}, {"n": "Jacob Ramsey", "c": "NEW", "p": "M", "fpg": 5.61, "gp": 28, "pts": 157, "v": -85, "d": -3.04, "adp": null}, {"n": "Nick Woltemade", "c": "NEW", "p": "M,F", "fpg": 6.03, "gp": 33, "pts": 199, "v": -86, "d": -2.62, "adp": null}, {"n": "Carlos Baleba", "c": "BHA", "p": "M", "fpg": 5.9, "gp": 32, "pts": 189, "v": -88, "d": -2.75, "adp": null}, {"n": "Victor Lindelof", "c": "AVL", "p": "D", "fpg": 3.61, "gp": 17, "pts": 61, "v": -89, "d": -5.25, "adp": null}, {"n": "Morato", "c": "NOT", "p": "D", "fpg": 4.94, "gp": 23, "pts": 114, "v": -90, "d": -3.92, "adp": null}, {"n": "Nicolas Dominguez", "c": "NOT", "p": "M", "fpg": 5.53, "gp": 29, "pts": 160, "v": -90, "d": -3.12, "adp": null}, {"n": "Hannibal Mejbri", "c": "BUR", "p": "M", "fpg": 5.33, "gp": 27, "pts": 144, "v": -90, "d": -3.32, "adp": null}, {"n": "Gabriel Martinelli", "c": "ARS", "p": "M,F", "fpg": 5.74, "gp": 31, "pts": 178, "v": -90, "d": -2.91, "adp": null}, {"n": "Andrew Robertson", "c": "LIV", "p": "D", "fpg": 5.51, "gp": 27, "pts": 149, "v": -90, "d": -3.35, "adp": null}, {"n": "Lucas Bergvall", "c": "TOT", "p": "M", "fpg": 4.87, "gp": 24, "pts": 117, "v": -91, "d": -3.78, "adp": null}, {"n": "Andre", "c": "WOL", "p": "M", "fpg": 5.98, "gp": 34, "pts": 203, "v": -91, "d": -2.67, "adp": null}, {"n": "Rodrigo Gomes", "c": "WOL", "p": "D,M,F", "fpg": 4.71, "gp": 23, "pts": 108, "v": -91, "d": -3.94, "adp": null}, {"n": "Jadon Sancho", "c": "AVL", "p": "M,F", "fpg": 5.09, "gp": 26, "pts": 132, "v": -93, "d": -3.56, "adp": null}, {"n": "Donyell Malen", "c": "AVL", "p": "F", "fpg": 3.92, "gp": 19, "pts": 74, "v": -93, "d": -4.9, "adp": null}, {"n": "Jeremie Frimpong", "c": "LIV", "p": "D,M", "fpg": 5.21, "gp": 27, "pts": 141, "v": -93, "d": -3.44, "adp": 101.3}, {"n": "Edson Alvarez", "c": "WHU", "p": "M", "fpg": 5.32, "gp": 28, "pts": 149, "v": -93, "d": -3.33, "adp": null}, {"n": "Sander Berge", "c": "FUL", "p": "M", "fpg": 5.9, "gp": 34, "pts": 201, "v": -94, "d": -2.75, "adp": null}, {"n": "Daniel James", "c": "LEE", "p": "M,F", "fpg": 3.67, "gp": 19, "pts": 70, "v": -95, "d": -4.98, "adp": null}, {"n": "Noah Sadiki", "c": "SUN", "p": "M", "fpg": 5.77, "gp": 33, "pts": 190, "v": -95, "d": -2.88, "adp": null}, {"n": "Ian Maatsen", "c": "AVL", "p": "D", "fpg": 5.62, "gp": 30, "pts": 169, "v": -97, "d": -3.24, "adp": 152.3}, {"n": "Evanilson", "c": "BOU", "p": "F", "fpg": 5.93, "gp": 34, "pts": 202, "v": -98, "d": -2.89, "adp": null}, {"n": "Charalampos Kostoulas", "c": "BHA", "p": "F", "fpg": 4.11, "gp": 21, "pts": 86, "v": -99, "d": -4.71, "adp": null}, {"n": "Destiny Udogie", "c": "TOT", "p": "D", "fpg": 4.38, "gp": 22, "pts": 96, "v": -99, "d": -4.48, "adp": null}, {"n": "Harvey Barnes", "c": "NEW", "p": "M,F", "fpg": 5.88, "gp": 36, "pts": 212, "v": -100, "d": -2.77, "adp": null}, {"n": "William Osula", "c": "NEW", "p": "F", "fpg": 3.84, "gp": 20, "pts": 77, "v": -100, "d": -4.98, "adp": 110.8}, {"n": "Rico Henry", "c": "BRF", "p": "D", "fpg": 3.32, "gp": 18, "pts": 60, "v": -100, "d": -5.54, "adp": null}, {"n": "Jean-Ricner Bellegarde", "c": "WOL", "p": "M,F", "fpg": 5.18, "gp": 29, "pts": 150, "v": -101, "d": -3.47, "adp": null}, {"n": "Lesley Ugochukwu", "c": "BUR", "p": "M", "fpg": 5.48, "gp": 32, "pts": 175, "v": -101, "d": -3.17, "adp": null}, {"n": "Christopher Nkunku", "c": "CHE", "p": "M,F", "fpg": 4.88, "gp": 27, "pts": 132, "v": -102, "d": -3.77, "adp": null}, {"n": "Danny Welbeck", "c": "BHA", "p": "F", "fpg": 5.9, "gp": 35, "pts": 206, "v": -102, "d": -2.92, "adp": null}, {"n": "Manuel Akanji", "c": "MCI", "p": "D", "fpg": 4.94, "gp": 26, "pts": 128, "v": -102, "d": -3.92, "adp": null}, {"n": "Jorrel Hato", "c": "CHE", "p": "D", "fpg": 4.16, "gp": 22, "pts": 92, "v": -103, "d": -4.7, "adp": null}, {"n": "Brennan Johnson", "c": "CRY", "p": "M,F", "fpg": 5.62, "gp": 34, "pts": 191, "v": -103, "d": -3.03, "adp": null}, {"n": "Raheem Sterling", "c": "CHE", "p": "F", "fpg": 2.78, "gp": 17, "pts": 47, "v": -103, "d": -6.04, "adp": null}, {"n": "Kyle Walker", "c": "BUR", "p": "D,M", "fpg": 5.06, "gp": 29, "pts": 147, "v": -104, "d": -3.59, "adp": null}, {"n": "Chemsdine Talbi", "c": "SUN", "p": "M,F", "fpg": 4.93, "gp": 28, "pts": 138, "v": -104, "d": -3.72, "adp": null}, {"n": "Rodrigo Muniz", "c": "FUL", "p": "F", "fpg": 4.37, "gp": 24, "pts": 105, "v": -107, "d": -4.45, "adp": null}, {"n": "Amine Adli", "c": "BOU", "p": "M,F", "fpg": 5.17, "gp": 31, "pts": 160, "v": -108, "d": -3.48, "adp": null}, {"n": "Taiwo Awoniyi", "c": "NOT", "p": "F", "fpg": 3.42, "gp": 20, "pts": 68, "v": -108, "d": -5.4, "adp": null}, {"n": "Adam Smith", "c": "BOU", "p": "D", "fpg": 4.18, "gp": 23, "pts": 96, "v": -108, "d": -4.68, "adp": null}, {"n": "Ehor Yarmolyuk", "c": "BRF", "p": "M", "fpg": 5.54, "gp": 35, "pts": 194, "v": -109, "d": -3.11, "adp": null}, {"n": "Justin Devenny", "c": "CRY", "p": "M,F", "fpg": 3.71, "gp": 22, "pts": 82, "v": -109, "d": -4.94, "adp": null}, {"n": "Anthony Elanga", "c": "NEW", "p": "M,F", "fpg": 5.44, "gp": 34, "pts": 185, "v": -109, "d": -3.21, "adp": null}, {"n": "Joshua King", "c": "FUL", "p": "M", "fpg": 4.07, "gp": 24, "pts": 98, "v": -110, "d": -4.58, "adp": null}, {"n": "Marcus Edwards", "c": "BUR", "p": "F", "fpg": 3.99, "gp": 23, "pts": 92, "v": -111, "d": -4.83, "adp": null}, {"n": "Armando Broja", "c": "BUR", "p": "F", "fpg": 2.99, "gp": 19, "pts": 57, "v": -111, "d": -5.83, "adp": null}, {"n": "Will Hughes", "c": "CRY", "p": "M", "fpg": 5.18, "gp": 32, "pts": 166, "v": -111, "d": -3.47, "adp": null}, {"n": "David Moller Wolfe", "c": "WOL", "p": "D,M", "fpg": 3.61, "gp": 22, "pts": 79, "v": -111, "d": -5.04, "adp": null}, {"n": "Yoane Wissa", "c": "NEW", "p": "F", "fpg": 4.39, "gp": 25, "pts": 110, "v": -111, "d": -4.43, "adp": null}, {"n": "Andrey Santos", "c": "CHE", "p": "M", "fpg": 4.51, "gp": 27, "pts": 122, "v": -112, "d": -4.14, "adp": null}, {"n": "Joe Willock", "c": "NEW", "p": "M", "fpg": 4.51, "gp": 27, "pts": 122, "v": -112, "d": -4.14, "adp": null}, {"n": "Joel Piroe", "c": "LEE", "p": "F", "fpg": 1.85, "gp": 16, "pts": 30, "v": -112, "d": -6.97, "adp": null}, {"n": "Keane Lewis-Potter", "c": "BRF", "p": "D,M,F", "fpg": 5.6, "gp": 37, "pts": 207, "v": -113, "d": -3.05, "adp": null}, {"n": "David Brooks", "c": "BOU", "p": "M", "fpg": 4.88, "gp": 30, "pts": 146, "v": -113, "d": -3.77, "adp": null}, {"n": "Ezri Konsa", "c": "AVL", "p": "D", "fpg": 5.53, "gp": 34, "pts": 188, "v": -113, "d": -3.33, "adp": null}, {"n": "Ryan Yates", "c": "NOT", "p": "M", "fpg": 4.44, "gp": 27, "pts": 120, "v": -114, "d": -4.21, "adp": null}, {"n": "Myles Lewis-Skelly", "c": "ARS", "p": "D,M", "fpg": 3.18, "gp": 21, "pts": 67, "v": -115, "d": -5.47, "adp": null}, {"n": "Eliezer Mayenda", "c": "SUN", "p": "F", "fpg": 3.05, "gp": 20, "pts": 61, "v": -115, "d": -5.77, "adp": null}, {"n": "Archie Gray", "c": "TOT", "p": "D,M", "fpg": 4.02, "gp": 25, "pts": 100, "v": -116, "d": -4.63, "adp": null}, {"n": "Lutsharel Geertruida", "c": "SUN", "p": "D,M", "fpg": 4.49, "gp": 28, "pts": 126, "v": -116, "d": -4.16, "adp": null}, {"n": "Randal Kolo Muani", "c": "TOT", "p": "M,F", "fpg": 4.8, "gp": 30, "pts": 144, "v": -116, "d": -3.85, "adp": null}, {"n": "Malo Gusto", "c": "CHE", "p": "D", "fpg": 5.34, "gp": 33, "pts": 176, "v": -116, "d": -3.52, "adp": null}, {"n": "Leny Yoro", "c": "MUN", "p": "D", "fpg": 4.73, "gp": 28, "pts": 132, "v": -116, "d": -4.13, "adp": null}, {"n": "Tom Cairney", "c": "FUL", "p": "M", "fpg": 3.77, "gp": 24, "pts": 90, "v": -117, "d": -4.88, "adp": null}, {"n": "Curtis Jones", "c": "LIV", "p": "D,M", "fpg": 5.18, "gp": 34, "pts": 176, "v": -118, "d": -3.47, "adp": null}, {"n": "Emile Smith Rowe", "c": "FUL", "p": "M", "fpg": 5.36, "gp": 36, "pts": 193, "v": -118, "d": -3.29, "adp": null}, {"n": "Emiliano Buendia", "c": "AVL", "p": "M", "fpg": 5.12, "gp": 34, "pts": 174, "v": -120, "d": -3.53, "adp": 140.4}, {"n": "Jordan Henderson", "c": "BRF", "p": "M", "fpg": 4.88, "gp": 32, "pts": 156, "v": -121, "d": -3.77, "adp": null}, {"n": "Lamare Bogarde", "c": "AVL", "p": "D,M", "fpg": 2.91, "gp": 21, "pts": 61, "v": -121, "d": -5.74, "adp": null}, {"n": "Jackson Tchatchoua", "c": "WOL", "p": "D,M", "fpg": 4.73, "gp": 31, "pts": 147, "v": -122, "d": -3.92, "adp": null}, {"n": "Federico Chiesa", "c": "LIV", "p": "F", "fpg": 2.34, "gp": 19, "pts": 44, "v": -123, "d": -6.48, "adp": null}, {"n": "Loum Tchaouna", "c": "BUR", "p": "M,F", "fpg": 4.39, "gp": 29, "pts": 127, "v": -124, "d": -4.26, "adp": null}, {"n": "Viktor Gyokeres", "c": "ARS", "p": "F", "fpg": 5.29, "gp": 36, "pts": 190, "v": -127, "d": -3.53, "adp": 56.7}, {"n": "Beto", "c": "EVE", "p": "F", "fpg": 5.17, "gp": 35, "pts": 181, "v": -128, "d": -3.65, "adp": null}, {"n": "Igor Jesus", "c": "NOT", "p": "F", "fpg": 5.34, "gp": 37, "pts": 198, "v": -129, "d": -3.48, "adp": null}, {"n": "Josh Laurent", "c": "BUR", "p": "D,M", "fpg": 4.74, "gp": 33, "pts": 156, "v": -129, "d": -3.91, "adp": null}, {"n": "Adama Traore", "c": "WHU", "p": "M,F", "fpg": 4.0, "gp": 28, "pts": 112, "v": -130, "d": -4.65, "adp": null}, {"n": "Lyle Foster", "c": "BUR", "p": "F", "fpg": 3.76, "gp": 26, "pts": 98, "v": -132, "d": -5.06, "adp": null}, {"n": "Hwang Hee-Chan", "c": "WOL", "p": "F", "fpg": 3.3, "gp": 24, "pts": 79, "v": -132, "d": -5.52, "adp": null}, {"n": "Aaron Hickey", "c": "BRF", "p": "D", "fpg": 2.5, "gp": 21, "pts": 52, "v": -134, "d": -6.36, "adp": null}, {"n": "Wilfried Gnonto", "c": "LEE", "p": "F", "fpg": 2.96, "gp": 23, "pts": 68, "v": -135, "d": -5.86, "adp": null}, {"n": "Brian Brobbey", "c": "SUN", "p": "F", "fpg": 4.44, "gp": 31, "pts": 138, "v": -136, "d": -4.38, "adp": null}, {"n": "Enes Unal", "c": "BOU", "p": "F", "fpg": 2.29, "gp": 21, "pts": 48, "v": -137, "d": -6.53, "adp": null}, {"n": "Jacob Bruun Larsen", "c": "BUR", "p": "M,F", "fpg": 3.73, "gp": 28, "pts": 104, "v": -138, "d": -4.92, "adp": null}, {"n": "Tolu Arokodare", "c": "WOL", "p": "F", "fpg": 4.57, "gp": 33, "pts": 151, "v": -140, "d": -4.25, "adp": null}, {"n": "Darwin Nunez", "c": "LIV", "p": "F", "fpg": 4.11, "gp": 30, "pts": 123, "v": -141, "d": -4.71, "adp": null}, {"n": "Lukas Nmecha", "c": "LEE", "p": "F", "fpg": 4.27, "gp": 31, "pts": 132, "v": -141, "d": -4.55, "adp": null}, {"n": "Jorgen Strand Larsen", "c": "CRY", "p": "F", "fpg": 4.87, "gp": 36, "pts": 175, "v": -142, "d": -3.95, "adp": null}, {"n": "Joshua Zirkzee", "c": "MUN", "p": "F", "fpg": 3.46, "gp": 27, "pts": 93, "v": -145, "d": -5.36, "adp": null}, {"n": "Thierno Barry", "c": "EVE", "p": "F", "fpg": 4.82, "gp": 38, "pts": 183, "v": -152, "d": -4.0, "adp": null}, {"n": "Callum Wilson", "c": "WHU", "p": "F", "fpg": 3.2, "gp": 27, "pts": 86, "v": -152, "d": -5.62, "adp": null}, {"n": "Goncalo Guedes", "c": "WOL", "p": "F", "fpg": 3.49, "gp": 29, "pts": 101, "v": -155, "d": -5.33, "adp": null}, {"n": "Liam Delap", "c": "CHE", "p": "F", "fpg": 3.8, "gp": 31, "pts": 118, "v": -156, "d": -5.02, "adp": null}, {"n": "Wilson Isidor", "c": "SUN", "p": "F", "fpg": 3.79, "gp": 32, "pts": 121, "v": -161, "d": -5.03, "adp": null}, {"n": "Rasmus Hojlund", "c": "MUN", "p": "F", "fpg": 3.59, "gp": 32, "pts": 115, "v": -167, "d": -5.23, "adp": null}];
+const state = { view:'pool', sort:'v', filt:'ALL', search:'',
+  taken:new Set(), queue:[], team:[] };
+
+const SAVE_KEY = 'draft2627_v1';
+let storageOK = false;
+try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); storageOK = true; } catch(e){ storageOK = false; }
+
+function snapshot(){
+  return JSON.stringify({ taken:[...state.taken], queue:state.queue, team:state.team,
+    sort:state.sort, filt:state.filt });
+}
+function restore(str){
+  try{
+    const o=JSON.parse(str);
+    state.taken=new Set(o.taken||[]); state.queue=o.queue||[]; state.team=o.team||[];
+    if(o.sort)state.sort=o.sort; if(o.filt)state.filt=o.filt;
+    return true;
+  }catch(e){ return false; }
+}
+function save(){
+  if(storageOK){ try{ localStorage.setItem(SAVE_KEY, snapshot()); flash('saved'); }catch(e){ flash('save failed','warn'); } }
+  else { flash('open the downloaded file in Safari to auto-save','warn'); }
+}
+let flashT;
+function flash(msg,cls){
+  const el=document.getElementById('saveStatus'); el.textContent=msg; el.className='savestatus'+(cls?' '+cls:'');
+  clearTimeout(flashT); flashT=setTimeout(()=>{ el.textContent=storageOK?'auto-saved':''; el.className='savestatus'; },1800);
+}
+
+const byName = n => DATA.find(p=>p.n===n);
+const posList = p => p.p.split(',');
+
+// formation legality: 1GK implied, need D/M/F within 3-5 / 3-5 / 1-3, total 10 outfield for a full lineup
+function bestFormation(team){
+  // team = array of player objects. Try to fit into a legal XI counting dual-elig flexibly.
+  // Return {legal, d, m, f, note}
+  const players = team.map(p=>posList(p));
+  // greedy: assign singles first, then duals to satisfy minimums
+  let d=0,m=0,f=0, flexible=[];
+  players.forEach(el=>{ if(el.length===1){ if(el[0]==='D')d++; else if(el[0]==='M')m++; else f++; } else flexible.push(el); });
+  // fill minimums using flexibles
+  const need = ()=>({D:Math.max(0,3-d),M:Math.max(0,3-m),F:Math.max(0,1-f)});
+  flexible.forEach(el=>{
+    const nd=need();
+    if(el.includes('D')&&nd.D>0)d++;
+    else if(el.includes('M')&&nd.M>0)m++;
+    else if(el.includes('F')&&nd.F>0)f++;
+    else { if(el.includes('D'))d++; else if(el.includes('M'))m++; else f++; }
+  });
+  const total=d+m+f;
+  const legalShape = d>=3&&d<=5 && m>=3&&m<=5 && f>=1&&f<=3 && (d+m+f)===10;
+  let note='';
+  if(total<10) note=`${10-total} more starter${total<9?'s':''} needed`;
+  else if(total>10) note=`${total-10} over (bench)`;
+  else if(!legalShape) note='shape not a valid formation';
+  else note=`${d}-${m}-${f} ✓`;
+  return {legal:legalShape, d,m,f,total,note};
+}
+
+function chip(p, rankAmongAvail){
+  if(state.sort==='adp' && p.adp) return `<span class="chip adp">ADP ${p.adp}</span>`;
+  if(!p.adp) return '';
+  const cls = p.adp>rankAmongAvail*2.2?'steal':(p.adp<rankAmongAvail*0.8?'rich':'adp');
+  return `<span class="chip ${cls}">ADP ${p.adp}</span>`;
+}
+
+function rowHTML(p, idx, ctx){
+  const isT=state.taken.has(p.n), inQ=state.queue.includes(p.n), inT=state.team.includes(p.n);
+  let acts='';
+  if(ctx==='pool'){
+    acts = `${inQ?'':`<button class="act q" data-q="${p.n}">→</button>`}
+            ${inT?'':`<button class="act d" data-d="${p.n}">✓</button>`}
+            <button class="act x" data-x="${p.n}">✕</button>`;
+  } else if(ctx==='queue'){
+    acts = `<button class="act d" data-d="${p.n}">✓</button>
+            <button class="act x" data-qx="${p.n}">✕</button>`;
+  } else if(ctx==='team'){
+    acts = `<button class="act x" data-tx="${p.n}">✕</button>`;
+  }
+  const rk = ctx==='pool'? `<span class="rk">${idx==null?'--':String(idx+1).padStart(2,'0')}</span>`:'';
+  const metric = state.sort;
+  const mval = metric==='adp'? (p.adp??'–') : (metric==='d'? '+'+p.d.toFixed(2) : p[metric]);
+  const qextra = ctx==='queue'? `<span class="grip" data-grip>⠿</span><span class="qorder">${idx+1}</span>` : '';
+  const rowcls = `row${isT&&ctx==='pool'?' taken':''}${ctx==='queue'?' qrow':''}`;
+  return `<div class="${rowcls}"${ctx==='queue'?` draggable="true" data-qname="${p.n}"`:''}>
+    ${qextra}${rk}
+    <div class="info">
+      <div class="nm">${p.n}</div>
+      <div class="meta">${p.c} · ${p.p} · ${p.fpg.toFixed(1)}×${p.gp}${ctx==='pool'?chip(p,(idx??0)+1):` · ${p.v} VORP`}</div>
+    </div>
+    ${ctx==='pool'?`<div class="vnum"><b>${mval}</b><span>${metric}</span></div>`:''}
+    <div class="acts">${acts}</div>
+  </div>`;
+}
+
+function renderPool(){
+  document.getElementById('poolControls').style.display='';
+  let rows=DATA.slice();
+  if(state.search){ const q=state.search.toLowerCase();
+    rows=rows.filter(p=>p.n.toLowerCase().includes(q)||p.c.toLowerCase().includes(q)); }
+  rows=rows.filter(p=>{
+    if(state.filt==='ALL')return true;
+    if(state.filt==='DUAL')return p.p.includes(',');
+    if(state.filt==='AVAIL')return !state.taken.has(p.n)&&!state.team.includes(p.n);
+    return posList(p).includes(state.filt);
+  });
+  if(state.sort==='adp') rows.sort((a,b)=>(a.adp??9999)-(b.adp??9999));
+  else rows.sort((a,b)=>b[state.sort]-a[state.sort]);
+  rows=rows.slice(0,120);
+  let avail=0;
+  document.getElementById('list').innerHTML = rows.map(p=>{
+    const isT=state.taken.has(p.n)||state.team.includes(p.n);
+    return rowHTML(p, isT?null:avail++, 'pool');
+  }).join('') || `<div class="empty">No players match.</div>`;
+}
+
+function renderQueue(){
+  document.getElementById('poolControls').style.display='none';
+  const live=state.queue.filter(n=>!state.taken.has(n)&&!state.team.includes(n));
+  if(live.length===0){ document.getElementById('list').innerHTML=`<div class="empty">Queue is empty. Add targets from the pool with →</div>`; return; }
+  document.getElementById('list').innerHTML = live.map((n,i)=>rowHTML(byName(n),i,'queue')).join('');
+  wireDrag();
+}
+
+function renderTeam(){
+  document.getElementById('poolControls').style.display='none';
+  const team=state.team.map(byName);
+  const f=bestFormation(team);
+  const totalV=team.reduce((s,p)=>s+p.v,0);
+  const totalP=team.reduce((s,p)=>s+p.pts,0);
+  const groups={D:[],M:[],F:[]};
+  team.forEach(p=>{ const primary=posList(p)[0]; groups[primary].push(p); });
+  let html=`<div class="total"><div><b>${totalP}</b> <span>proj pts</span></div><div><b>${totalV}</b> <span>total VORP</span></div></div>`;
+  html+=`<div class="formrow"><span class="lbl">Formation</span>
+    <span class="fbadge ${f.legal?'legal':'illegal'}">${f.d}-${f.m}-${f.f}</span>
+    <span class="poscount">${f.note} · ${state.team.length} rostered</span></div>`;
+  ['D','M','F'].forEach(pos=>{
+    const label={D:'Defenders',M:'Midfielders',F:'Forwards'}[pos];
+    html+=`<div class="slotgroup"><div class="slothead"><span>${label}</span><span>${groups[pos].length}</span></div>`;
+    if(groups[pos].length===0) html+=`<div class="empty">none</div>`;
+    else html+=groups[pos].sort((a,b)=>b.v-a.v).map(p=>rowHTML(p,null,'team')).join('');
+    html+=`</div>`;
+  });
+  document.getElementById('list').innerHTML=html;
+}
+
+function render(){
+  document.getElementById('qb').textContent=state.queue.filter(n=>!state.taken.has(n)&&!state.team.includes(n)).length;
+  document.getElementById('tb').textContent=state.team.length;
+  if(state.view==='pool')renderPool();
+  else if(state.view==='queue')renderQueue();
+  else renderTeam();
+}
+
+// events
+document.querySelectorAll('.vbtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.vbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); state.view=b.dataset.v; render();
+});
+document.getElementById('sorts').onclick=e=>{ if(!e.target.dataset.s)return;
+  document.querySelectorAll('#sorts .ctl').forEach(x=>x.classList.remove('on'));
+  e.target.classList.add('on'); state.sort=e.target.dataset.s; render(); };
+document.getElementById('filters').onclick=e=>{ if(!e.target.dataset.f)return;
+  document.querySelectorAll('#filters .ctl').forEach(x=>x.classList.remove('on'));
+  e.target.classList.add('on'); state.filt=e.target.dataset.f; render(); };
+document.getElementById('search').oninput=e=>{ state.search=e.target.value; render(); };
+
+document.getElementById('list').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.q){ if(!state.queue.includes(t.dataset.q))state.queue.push(t.dataset.q); save(); render(); }
+  else if(t.dataset.d){ const n=t.dataset.d;
+    if(!state.team.includes(n))state.team.push(n);
+    state.queue=state.queue.filter(x=>x!==n); state.taken.delete(n); save(); render(); }
+  else if(t.dataset.x){ const n=t.dataset.x;
+    state.taken.has(n)?state.taken.delete(n):state.taken.add(n); save(); render(); }
+  else if(t.dataset.qx){ state.queue=state.queue.filter(x=>x!==t.dataset.qx); save(); render(); }
+  else if(t.dataset.tx){ state.team=state.team.filter(x=>x!==t.dataset.tx); save(); render(); }
+});
+
+// --- queue reordering: HTML5 drag (desktop) + touch (mobile) ---
+function moveInQueue(name, beforeName){
+  const q=state.queue.filter(x=>x!==name);
+  if(beforeName==null){ q.push(name); }
+  else { const i=q.indexOf(beforeName); q.splice(i,0,name); }
+  state.queue=q; save(); render();
+}
+function wireDrag(){
+  const rows=[...document.querySelectorAll('.qrow')];
+  let dragName=null;
+  rows.forEach(row=>{
+    row.addEventListener('dragstart',e=>{ dragName=row.dataset.qname; row.classList.add('dragging'); });
+    row.addEventListener('dragend',()=>{ dragName=null; rows.forEach(r=>r.classList.remove('dragging','dragover')); });
+    row.addEventListener('dragover',e=>{ e.preventDefault(); row.classList.add('dragover'); });
+    row.addEventListener('dragleave',()=>row.classList.remove('dragover'));
+    row.addEventListener('drop',e=>{ e.preventDefault(); if(dragName&&dragName!==row.dataset.qname) moveInQueue(dragName,row.dataset.qname); });
+  });
+  // touch: long-press grip then drag
+  let touchName=null, touchY=0;
+  rows.forEach(row=>{
+    const grip=row.querySelector('[data-grip]'); if(!grip)return;
+    grip.addEventListener('touchstart',e=>{ touchName=row.dataset.qname; row.classList.add('dragging'); e.preventDefault(); },{passive:false});
+  });
+  document.addEventListener('touchmove',e=>{
+    if(!touchName)return; e.preventDefault();
+    const y=e.touches[0].clientY;
+    const over=document.elementFromPoint(e.touches[0].clientX,y)?.closest('.qrow');
+    rows.forEach(r=>r.classList.remove('dragover'));
+    if(over&&over.dataset.qname!==touchName) over.classList.add('dragover');
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    if(!touchName)return;
+    const over=document.querySelector('.qrow.dragover');
+    if(over&&over.dataset.qname!==touchName) moveInQueue(touchName,over.dataset.qname);
+    touchName=null; rows.forEach(r=>r.classList.remove('dragging','dragover'));
+  });
+}
+
+// --- persistence toolbar ---
+const modal=document.getElementById('modal');
+document.getElementById('btnExport').onclick=()=>{
+  document.getElementById('modalTitle').textContent='Backup code — copy and save in Notes';
+  document.getElementById('modalText').value=snapshot();
+  modal.classList.add('on');
+};
+document.getElementById('btnImport').onclick=()=>{
+  document.getElementById('modalTitle').textContent='Paste a backup code to restore';
+  document.getElementById('modalText').value='';
+  modal.classList.add('on');
+};
+document.getElementById('modalCopy').onclick=()=>{
+  const ta=document.getElementById('modalText'); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  navigator.clipboard?.writeText(ta.value).catch(()=>{});
+  flash('copied');
+};
+document.getElementById('modalLoad').onclick=()=>{
+  if(restore(document.getElementById('modalText').value)){ save(); modal.classList.remove('on');
+    document.querySelectorAll('#sorts .ctl').forEach(x=>x.classList.toggle('on',x.dataset.s===state.sort));
+    document.querySelectorAll('#filters .ctl').forEach(x=>x.classList.toggle('on',x.dataset.f===state.filt));
+    render(); flash('restored'); }
+  else flash('invalid code','warn');
+};
+document.getElementById('modalClose').onclick=()=>modal.classList.remove('on');
+document.getElementById('btnReset').onclick=()=>{
+  if(confirm('Clear your team, queue, and taken marks? This cannot be undone.')){
+    state.taken=new Set(); state.queue=[]; state.team=[]; save(); render(); flash('reset');
+  }
+};
+
+// --- boot: restore prior session if present ---
+if(storageOK){
+  const saved=localStorage.getItem(SAVE_KEY);
+  if(saved && restore(saved)){
+    document.querySelectorAll('#sorts .ctl').forEach(x=>x.classList.toggle('on',x.dataset.s===state.sort));
+    document.querySelectorAll('#filters .ctl').forEach(x=>x.classList.toggle('on',x.dataset.f===state.filt));
+  }
+  document.getElementById('saveStatus').textContent='auto-saved';
+} else {
+  document.getElementById('saveStatus').textContent='in-chat preview — download to auto-save';
+  document.getElementById('saveStatus').className='savestatus warn';
+}
+
+render();
+</script>
+</body>
+</html>
